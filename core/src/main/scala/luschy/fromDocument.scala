@@ -23,7 +23,7 @@ import shapeless._
 import shapeless.labelled._
 
 trait FromDocument[A] {
-  def fromDocument(x: Document): A
+  def fromDocument(x: Document): DecodeResult[A]
 }
 
 object FromDocument extends FromDocumentInstances {
@@ -34,7 +34,7 @@ object FromDocument extends FromDocumentInstances {
 trait FromDocumentInstances extends FromDocumentInstances0 {
 
   implicit val fromDocumentHNil: FromDocument[HNil] = new FromDocument[HNil] {
-    def fromDocument(x: Document): HNil = HNil
+    def fromDocument(x: Document): DecodeResult[HNil] = DecodeResult.valid(HNil)
   }
 
   implicit def fromDocumentHCons[K <: Symbol, V, T <: HList](implicit
@@ -43,16 +43,16 @@ trait FromDocumentInstances extends FromDocumentInstances0 {
     T: Lazy[FromDocument[T]])
   : FromDocument[FieldType[K, V] :: T] = new FromDocument[FieldType[K, V] :: T] {
 
-    def fromDocument(x: Document): FieldType[K, V] :: T = {
+    def fromDocument(x: Document): DecodeResult[FieldType[K, V] :: T] = {
       val headField = Option(x.getField(K.value.name))
-          .getOrElse(x.getField(CConsFieldPrefix + K.value.name))
-      val head = V.value.fromField(headField, x)
-      field[K](head) :: T.value.fromDocument(x)
+        .getOrElse(x.getField(CConsFieldPrefix + K.value.name))
+      (V.value.fromField(headField, x, K.value.name) |@| T.value.fromDocument(x))(field[K](_) :: _)
     }
   }
 
   implicit val fromDocumentCNil: FromDocument[CNil] = new FromDocument[CNil] {
-    def fromDocument(x: Document): CNil = throw new IllegalArgumentException("fromDocument(CNil)")
+    def fromDocument(x: Document): DecodeResult[CNil] =
+      DecodeResult.unexpected("fromDocument(CNil)")
   }
 
   implicit def fromDocumentCCons[K <: Symbol, V, T <: Coproduct, N <: Nat](implicit
@@ -61,13 +61,14 @@ trait FromDocumentInstances extends FromDocumentInstances0 {
     T: Lazy[FromDocument[T]])
   : FromDocument[FieldType[K, V] :+: T] = new FromDocument[FieldType[K, V] :+: T] {
 
-    def fromDocument(x: Document): FieldType[K, V] :+: T = {
+    def fromDocument(x: Document): DecodeResult[FieldType[K, V] :+: T] = {
       Option(x.getField(CConsFieldName))
         .flatMap(f ⇒ Option(f.binaryValue()))
         .map(_.utf8ToString())
-        .filter(_ == K.value.name)
-        .map(_ ⇒ Inl(field[K](V.value.fromDocument(x))))
-        .getOrElse(Inr(T.value.fromDocument(x)))
+        .filter(_ == K.value.name) match {
+        case Some(_) ⇒ V.value.fromDocument(x).map(field[K](_)).map(Inl(_))
+        case None ⇒ T.value.fromDocument(x).map(Inr(_))
+      }
     }
   }
 }
@@ -77,7 +78,7 @@ trait FromDocumentInstances0 {
     gen: LabelledGeneric.Aux[T, R],
     repr: Lazy[FromDocument[R]])
   : FromDocument[T] = new FromDocument[T] {
-    def fromDocument(x: Document): T =
-      gen.from(repr.value.fromDocument(x))
+    def fromDocument(x: Document): DecodeResult[T] =
+      repr.value.fromDocument(x).map(gen.from)
   }
 }

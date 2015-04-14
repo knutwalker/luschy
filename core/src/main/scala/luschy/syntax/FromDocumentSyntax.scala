@@ -26,7 +26,7 @@ import shapeless.tag.@@
 trait FromDocumentSyntax {
 
   implicit final class FromDocumentOps(val doc: Document) {
-    def as[A](implicit A: FromDocument[A]): A =
+    def as[A](implicit A: FromDocument[A]): DecodeResult[A] =
       A.fromDocument(doc)
 
     def field[K <: Symbol](implicit name: Witness.Aux[K]): SelectedField[K] =
@@ -37,12 +37,12 @@ trait FromDocumentSyntax {
   }
 
   final class SelectedField[K <: Symbol](doc: Document, K: Witness.Aux[K]) {
-    def as[A](implicit A: Lazy[FromField[A]]): A = {
+    def as[A](implicit A: Lazy[FromField[A]]): DecodeResult[A] = {
       val fromDoc = FromDocument.fromDocumentHCons[K, A, HNil](K, A, Lazy(FromDocument.fromDocumentHNil))
-      fromDoc.fromDocument(doc).head
+      fromDoc.fromDocument(doc).map(_.head)
     }
 
-    def apply[A](implicit A: Lazy[FromField[A]]): A =
+    def apply[A](implicit A: Lazy[FromField[A]]): DecodeResult[A] =
       as[A]
 
     //noinspection TypeAnnotation

@@ -15,14 +15,20 @@
  */
 
 package luschy
+package syntax
 
-package object syntax {
 
-  object decodeResult extends DecodeResultSyntax
+trait DecodeResultSyntax {
 
-  object document extends ToDocumentSyntax with FromDocumentSyntax
+  implicit final class DecodeResultOps[A](val x: A) {
+    def valid: DecodeResult[A] = DecodeResult.valid[A](x)
+  }
 
-  object index extends ToIndexSyntax
-
-  object all extends AllSyntaxes
+  implicit final class OptionDecodeResultOps[A](val x: Option[A]) {
+    def toDecodeResult(e: => DecodeResult.DecodeError): DecodeResult[A] = x match {
+      case Some(v) ⇒ DecodeResult.valid[A](v)
+      case None    ⇒ DecodeResult.Invalid(e)
+    }
+  }
 }
+object DecodeResultSyntax extends DecodeResultSyntax

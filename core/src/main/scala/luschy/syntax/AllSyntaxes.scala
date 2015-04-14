@@ -19,4 +19,5 @@ package luschy.syntax
 trait AllSyntaxes extends
 ToDocumentSyntax with
 FromDocumentSyntax with
-ToIndexSyntax
+ToIndexSyntax with
+DecodeResultSyntax

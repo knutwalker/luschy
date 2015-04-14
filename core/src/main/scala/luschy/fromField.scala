@@ -17,6 +17,7 @@
 package luschy
 
 import util.{CConsFieldPrefix, FieldSeparatorRe, fieldWithNewName}
+import syntax.decodeResult._
 
 import org.apache.lucene.document.Document
 import org.apache.lucene.index.IndexableField
@@ -28,7 +29,7 @@ import collection.JavaConverters._
 import scala.util.Try
 
 trait FromField[A] {
-  def fromField(x: IndexableField, doc: Document): A
+  def fromField(x: IndexableField, doc: Document, expectedName: String): DecodeResult[A]
 }
 
 object FromField extends FromFieldInstances {
@@ -38,8 +39,9 @@ object FromField extends FromFieldInstances {
 
 trait FromFieldInstances extends FromFieldInstances1 {
   implicit val fromFieldString: FromField[String] = new FromField[String] {
-    def fromField(x: IndexableField, doc: Document): String = {
-      fromString(x) orElse fromBytes(x) getOrElse "" // TODO: Validation
+    def fromField(x: IndexableField, doc: Document, expectedName: String): DecodeResult[String] = {
+      if (x eq null) DecodeResult.missingField(expectedName)
+      else (fromString(x) orElse fromBytes(x)).toDecodeResult(DecodeResult.WrongType(expectedName, "String"))
     }
 
     private def fromString(x: IndexableField) =
@@ -50,21 +52,29 @@ trait FromFieldInstances extends FromFieldInstances1 {
   }
 
   implicit val fromFieldInd: FromField[Int] = new FromField[Int] {
-    def fromField(x: IndexableField, doc: Document): Int = {
-      fromNumber(x) orElse fromString(x) getOrElse 0 // TODO: Validation
+    def fromField(x: IndexableField, doc: Document, expectedName: String): DecodeResult[Int] = {
+      if (x eq null) DecodeResult.missingField(expectedName)
+      else (fromNumber(x) orElse fromText(x)).toDecodeResult(DecodeResult.WrongType(expectedName, "Int"))
     }
 
     private def fromNumber(x: IndexableField) =
       Option(x.numericValue()).map(_.intValue())
 
+    private def fromText(x: IndexableField) =
+      (fromString(x) orElse fromBytes(x)).flatMap(n ⇒ Try(n.toInt).toOption)
+
     private def fromString(x: IndexableField) =
-      Try(fromFieldString.fromField(x, null).toInt).toOption
+      Option(x.stringValue())
+
+    private def fromBytes(x: IndexableField) =
+      Option(x.binaryValue()).map(_.utf8ToString())
   }
 }
 trait FromFieldInstances1  extends FromFieldInstances0 {
 
   implicit val fromFieldHNil: FromField[HNil] = new FromField[HNil] {
-    def fromField(x: IndexableField, doc: Document): HNil = HNil
+    def fromField(x: IndexableField, doc: Document, expectedName: String): DecodeResult[HNil] =
+      DecodeResult.valid(HNil)
   }
 
   implicit def fromFieldHCons[K <: Symbol, V, T <: HList](implicit
@@ -74,22 +84,23 @@ trait FromFieldInstances1  extends FromFieldInstances0 {
   : FromField[FieldType[K, V] :: T] = new FromField[FieldType[K, V] :: T] {
 
     @tailrec
-    def fromField(x: IndexableField, doc: Document): FieldType[K, V] :: T = {
+    def fromField(x: IndexableField, doc: Document, expectedName: String): DecodeResult[FieldType[K, V] :: T] = {
+      val name = K.value.name
       if (x.name().startsWith(CConsFieldPrefix)) {
         val sub = getSubDoc(x, doc)
-        fromField(sub.getField(K.value.name), sub)
-      } else if (x.name() == K.value.name) {
-        field[K](V.value.fromField(x, doc)) :: T.value.fromField(x, doc)
+        fromField(sub.getField(name), sub, name)
+      } else if (x.name() == name) {
+        (V.value.fromField(x, doc, name) |@| T.value.fromField(x, doc, name))(field[K](_) :: _)
       } else {
-        val f = doc.getField(K.value.name)
-        field[K](V.value.fromField(f, doc)) :: T.value.fromField(x, doc)
+        val f = doc.getField(name)
+        (V.value.fromField(f, doc, name) |@| T.value.fromField(x, doc, name))(field[K](_) :: _)
       }
     }
   }
 
   implicit val fromFieldCNil: FromField[CNil] = new FromField[CNil] {
-    def fromField(x: IndexableField, doc: Document): CNil =
-      throw new IllegalArgumentException("fromField(CNil)")
+    def fromField(x: IndexableField, doc: Document, expectedName: String): DecodeResult[CNil] =
+      DecodeResult.unexpected("fromField(CNil)")
   }
 
   implicit def fromFieldCCons[K <: Symbol, V, T <: Coproduct, N <: Nat](implicit
@@ -98,10 +109,11 @@ trait FromFieldInstances1  extends FromFieldInstances0 {
     T: Lazy[FromField[T]])
   : FromField[FieldType[K, V] :+: T] = new FromField[FieldType[K, V] :+: T] {
 
-    def fromField(x: IndexableField, doc: Document): FieldType[K, V] :+: T = {
-      Option(x.stringValue()).filter(_ == K.value.name) match {
-        case None    ⇒ Inr(T.value.fromField(x, doc))
-        case Some(_) ⇒ Inl(field[K](V.value.fromDocument(getSubDoc(x, doc))))
+    def fromField(x: IndexableField, doc: Document, expectedName: String): DecodeResult[FieldType[K, V] :+: T] = {
+      if (x == null) DecodeResult.missingField(expectedName)
+      else Option(x.stringValue()).filter(_ == K.value.name) match {
+        case None    ⇒ T.value.fromField(x, doc, K.value.name).map(Inr(_))
+        case Some(_) ⇒ V.value.fromDocument(getSubDoc(x, doc)).map(field[K](_)).map(Inl(_))
       }
     }
   }
@@ -122,7 +134,7 @@ trait FromFieldInstances0 {
     gen: LabelledGeneric.Aux[T, R],
     repr: Lazy[FromField[R]])
   : FromField[T] = new FromField[T] {
-    def fromField(x: IndexableField, doc: Document): T =
-      gen.from(repr.value.fromField(x, doc))
+    def fromField(x: IndexableField, doc: Document, expectedName: String): DecodeResult[T] =
+      repr.value.fromField(x, doc, expectedName).map(gen.from)
   }
 }
