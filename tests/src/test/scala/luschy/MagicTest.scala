@@ -90,9 +90,9 @@ object MagicTest extends Specification with ScalazMatchers with LuceneContext {
     val hit: Document = result.head
 
     hit.as[Person] should be equalTo bernd
-    hit.field('pet).as[Animal] should be equalTo bernd.pet
-    hit.field('pet).as[Animal] should be equalTo hit.as[Person].pet
+    (hit >> 'pet).as[Animal] should be equalTo bernd.pet
+    hit.field('pet)[Animal] should be equalTo hit.as[Person].pet
     hit.field('pet).as[Cat] should beEqualTo (bernd.pet)
-    hit.field('pet).field('fishes).as[Int] should be equalTo bernd.pet.asInstanceOf[Cat].fishes
+    (hit >> 'pet >> 'fishes)[Int] should be equalTo bernd.pet.asInstanceOf[Cat].fishes
   }
 }

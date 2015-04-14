@@ -32,6 +32,8 @@ trait FromDocumentSyntax {
     def field[K <: Symbol](implicit name: Witness.Aux[K]): SelectedField[K] =
       new SelectedField[K](doc, name)
 
+    def >>[K <: Symbol](implicit name: Witness.Aux[K]): SelectedField[K] =
+      field(name)
   }
 
   final class SelectedField[K <: Symbol](doc: Document, K: Witness.Aux[K]) {
@@ -39,6 +41,9 @@ trait FromDocumentSyntax {
       val fromDoc = FromDocument.fromDocumentHCons[K, A, HNil](K, A, Lazy(FromDocument.fromDocumentHNil))
       fromDoc.fromDocument(doc).head
     }
+
+    def apply[A](implicit A: Lazy[FromField[A]]): A =
+      as[A]
 
     //noinspection TypeAnnotation
     def field[L <: Symbol](implicit L: Witness.Aux[L]) = {
@@ -50,6 +55,10 @@ trait FromDocumentSyntax {
       }
       new SelectedField[F.T](doc, F)
     }
+
+    //noinspection TypeAnnotation
+    def >>[L <: Symbol](implicit L: Witness.Aux[L]) =
+      field(L)
   }
 }
 
