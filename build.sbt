@@ -168,4 +168,4 @@ lazy val releaseToCentral = ReleaseStep(
   },
   enableCrossBuild = true)
 
-addCommandAlias("travis", ";clean;coverage;test;it:test;coverageReport;coverageAggregate")
+addCommandAlias("travis", ";clean;coverage;test;coverageReport;coverageAggregate")
