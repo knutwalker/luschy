@@ -79,6 +79,7 @@ lazy val commonSettings = List(
     val color = GREEN
     (if (name == "parent") "" else s"[$color$name$RESET] ") + "> "
   },
+  resolvers += "Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases",
   headers := {
     val thisYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
     val years = List(startYear.value.getOrElse(thisYear), thisYear).distinct.mkString(" – ")
