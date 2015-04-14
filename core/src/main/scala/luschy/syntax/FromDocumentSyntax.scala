@@ -17,10 +17,11 @@
 package luschy
 package syntax
 
-import util._
+import util.FieldSeparator
 
 import org.apache.lucene.document.Document
-import org.apache.lucene.index.IndexableField
+import shapeless._
+import shapeless.tag.@@
 
 trait FromDocumentSyntax {
 
@@ -28,28 +29,26 @@ trait FromDocumentSyntax {
     def as[A](implicit A: FromDocument[A]): A =
       A.fromDocument(doc)
 
-    def field(name: Symbol): SelectedField = {
-      // TODO: cannot witness singleton type of K <: Symbol(name), how to do???
-      // TODO: So that we can reuse fromDocumentHCons, maybe?
-      SelectedField(name.name, doc)
-    }
+    def field[K <: Symbol](implicit name: Witness.Aux[K]): SelectedField[K] =
+      new SelectedField[K](doc, name)
 
-    def field[A](names: String*): SelectedField = {
-      val fld = names.mkString(FieldSeparator.toString)
-      SelectedField(fld, doc)
-    }
   }
 
-  final class SelectedField(field: IndexableField, doc: Document) {
-    def as[A](implicit A: FromField[A]): A = {
-      A.fromField(field, doc)
+  final class SelectedField[K <: Symbol](doc: Document, K: Witness.Aux[K]) {
+    def as[A](implicit A: Lazy[FromField[A]]): A = {
+      val fromDoc = FromDocument.fromDocumentHCons[K, A, HNil](K, A, Lazy(FromDocument.fromDocumentHNil))
+      fromDoc.fromDocument(doc).head
     }
-  }
-  object SelectedField {
-    def apply(name: String, doc: Document): SelectedField = {
-      val field = Option(doc.getField(name))
-        .getOrElse(doc.getField(CConsFieldPrefix + name))
-      new SelectedField(field, doc)
+
+    //noinspection TypeAnnotation
+    def field[L <: Symbol](implicit L: Witness.Aux[L]) = {
+      val fuse = K.value.name + FieldSeparator + L.value.name
+      val F = new Witness {
+        type T = Symbol @@ fuse.type
+        val value: Symbol @@ fuse.type =
+          tag[fuse.type](Symbol(fuse))
+      }
+      new SelectedField[F.T](doc, F)
     }
   }
 }
