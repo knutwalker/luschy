@@ -19,6 +19,8 @@ package luschy
 import shapeless._
 import shapeless.syntax.std.tuple._
 
+import collection.generic.CanBuildFrom
+
 sealed trait DecodeResult[A] {
 
   type E = List[DecodeResult.DecodeError]
@@ -97,6 +99,12 @@ object DecodeResult {
 
   def unexpected[A](msg: String): DecodeResult[A] =
     new Invalid(Unexpected(msg))
+
+  def traverse[A, B, F[X] <: TraversableOnce[X], That](xs: F[A])(f: A => DecodeResult[B])(implicit cbf: CanBuildFrom[F[A], B, That]): DecodeResult[That] =
+    xs.foldLeft(DecodeResult.point(cbf(xs)))((res, dr) ⇒ f(dr).ap(res.map(a ⇒ a += _))).map(_.result())
+
+  def sequence[A, F[X] <: TraversableOnce[X]](xs: F[DecodeResult[A]])(implicit cbf: CanBuildFrom[F[DecodeResult[A]], A, F[A]]): DecodeResult[F[A]] =
+    traverse(xs)(x ⇒ x)
 
   sealed case class Valid[A](value: A) extends DecodeResult[A] {
     def flatMap[B](f: (A) ⇒ DecodeResult[B]): DecodeResult[B] =
