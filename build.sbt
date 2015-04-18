@@ -80,6 +80,8 @@ lazy val commonSettings = List(
     (if (name == "parent") "" else s"[$color$name$RESET] ") + "> "
   },
   resolvers += "Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases",
+  cleanKeepFiles ++= List("resolution-cache", "streams").map(target.value / _),
+  updateOptions ~= (_.withCachedResolution(true)),
   headers := {
     val thisYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
     val years = List(startYear.value.getOrElse(thisYear), thisYear).distinct.mkString(" – ")
