@@ -103,7 +103,7 @@ trait FromFieldInstances1  extends FromFieldInstances0 {
       DecodeResult.unexpected("fromField(CNil)")
   }
 
-  implicit def fromFieldCCons[K <: Symbol, V, T <: Coproduct, N <: Nat](implicit
+  implicit def fromFieldCCons[K <: Symbol, V, T <: Coproduct](implicit
     K: Witness.Aux[K],
     V: Lazy[FromDocument[V]],
     T: Lazy[FromField[T]])
