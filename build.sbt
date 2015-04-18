@@ -19,12 +19,13 @@ lazy val tests = project enablePlugins AutomateHeaderPlugin dependsOn core setti
   luschySettings,
   scalacOptions in Test += "-Yrangepos",
   name := "luschy-tests",
+  resolvers += Resolver.sonatypeRepo("snapshots"),
   libraryDependencies ++= List(
     "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion.value,
-    "org.typelevel"    %% "shapeless-scalacheck"    % "0.3"    % "test" exclude("org.scalacheck", s"scalacheck${scalaBinaryVersion.value}")))
     "org.specs2"                 %% "specs2-core"               % "3.4"            % "test",
     "org.specs2"                 %% "specs2-scalacheck"         % "3.4"            % "test",
     "org.scalacheck"             %% "scalacheck"                % "1.12.2"         % "test",
+    "com.github.alexarchambault" %% "scalacheck-shapeless_1.12" % "0.2.0-SNAPSHOT" % "test",
     "org.typelevel"              %% "scalaz-specs2"             % "0.4.0"          % "test"
       exclude("org.specs2", s"specs2-core${scalaBinaryVersion.value}")
       exclude("org.specs2", s"specs2-scalacheck${scalaBinaryVersion.value}")
