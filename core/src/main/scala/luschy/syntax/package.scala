@@ -22,6 +22,8 @@ package object syntax {
 
   object document extends ToDocumentSyntax with FromDocumentSyntax
 
+  object field extends ToFieldSyntax
+
   object index extends ToIndexSyntax
 
   object all extends AllSyntaxes

@@ -16,9 +16,24 @@
 
 package luschy.syntax
 
-trait AllSyntaxes extends
-ToDocumentSyntax with
-FromDocumentSyntax with
-ToFieldSyntax with
-ToIndexSyntax with
-DecodeResultSyntax
+import luschy.ToField
+
+import org.apache.lucene.index.IndexableField
+
+trait ToFieldSyntax {
+
+  implicit final class ToFieldOps[A](val x: A) {
+    def toFields(name: String)(implicit A: ToField[A]): TraversableOnce[IndexableField] =
+      A.toField(x)(name)
+
+    def toFields(name: Symbol)(implicit A: ToField[A]): TraversableOnce[IndexableField] =
+      A.toField(x)(name.name)
+  }
+
+  implicit final class ToNamedFieldOps(val name: String) {
+    def asFieldFor[A](x: A)(implicit A: ToField[A]): TraversableOnce[IndexableField] =
+      A.toField(x)(name)
+  }
+}
+
+object ToFieldSyntax extends ToFieldSyntax
