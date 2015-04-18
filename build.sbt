@@ -21,11 +21,14 @@ lazy val tests = project enablePlugins AutomateHeaderPlugin dependsOn core setti
   name := "luschy-tests",
   libraryDependencies ++= List(
     "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion.value,
-    "org.specs2"       %% "specs2-core"             % "3.4"    % "test",
-    "org.specs2"       %% "specs2-scalacheck"       % "3.4"    % "test",
-    "org.scalacheck"   %% "scalacheck"              % "1.12.2" % "test",
-    "org.typelevel"    %% "scalaz-specs2"           % "0.3.0"  % "test" exclude("org.specs2", s"specs2_${scalaBinaryVersion.value}") exclude("org.scalacheck", s"scalacheck${scalaBinaryVersion.value}"),
     "org.typelevel"    %% "shapeless-scalacheck"    % "0.3"    % "test" exclude("org.scalacheck", s"scalacheck${scalaBinaryVersion.value}")))
+    "org.specs2"                 %% "specs2-core"               % "3.4"            % "test",
+    "org.specs2"                 %% "specs2-scalacheck"         % "3.4"            % "test",
+    "org.scalacheck"             %% "scalacheck"                % "1.12.2"         % "test",
+    "org.typelevel"              %% "scalaz-specs2"             % "0.4.0"          % "test"
+      exclude("org.specs2", s"specs2-core${scalaBinaryVersion.value}")
+      exclude("org.specs2", s"specs2-scalacheck${scalaBinaryVersion.value}")
+  ))
 
 // ====================================================================
 
