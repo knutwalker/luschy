@@ -21,13 +21,13 @@ import org.apache.lucene.index.IndexableField
 
 package object util {
 
+  final val FieldSeparator: Char = '\u001D'
+
   private[luschy] final val CConsFieldName =
     "__luschy_ccons_inl"
 
   private[luschy] final val CConsFieldPrefix =
     "__luschy_ccons_"
-
-  private[luschy] final val FieldSeparator = '\u001D'
 
   private[luschy] final val FieldSeparatorRe = "[\\Q\u001D\\E]"
 
