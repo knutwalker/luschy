@@ -76,6 +76,7 @@ lazy val commonSettings = List(
     "-Ywarn-unused",
     "-Ywarn-unused-import"),
   scalacOptions in (Compile, console) ~= (_ filterNot (x ⇒ x == "-Xfatal-warnings" || x.startsWith("-Ywarn"))),
+  scalacOptions in    (Test, console) ~= (_ filterNot (x ⇒ x == "-Xfatal-warnings" || x.startsWith("-Ywarn"))),
   shellPrompt := { state ⇒
     import scala.Console._
     val name = Project.extract(state).currentRef.project
@@ -92,7 +93,8 @@ lazy val commonSettings = List(
       "java"  -> Apache2_0(years, maintainer.value),
       "scala" -> Apache2_0(years, maintainer.value))
   },
-  initialCommands in console := """import shapeless._; import org.apache.lucene._""",
+  initialCommands in      console := """import shapeless._; import org.apache.lucene._; import luschy._, Luschy._""",
+  initialCommands in consoleQuick := """import shapeless._; import org.apache.lucene._""",
   logBuffered := false)
 
 lazy val publishThis = releaseSettings ++ sonatypeSettings ++ List(
