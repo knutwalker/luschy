@@ -16,6 +16,8 @@
 
 package luschy
 
+import luschy.util.LuceneContext
+
 import org.apache.lucene.document.{Document, Field, IntField, StringField}
 import org.apache.lucene.index._
 import org.specs2.mutable.Specification

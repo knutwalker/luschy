@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package luschy
+package luschy.util
 
 import scalaz._
 import Scalaz._
