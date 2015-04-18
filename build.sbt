@@ -42,7 +42,7 @@ lazy val buildSettings  = List(
            description := "Scala wrapper for Lucene",
           scalaVersion := "2.11.6",
       shapelessVersion := "2.2.0-RC4",
-         luceneVersion := "5.0.0")
+         luceneVersion := "5.1.0")
 
 lazy val commonSettings = List(
   scalacOptions ++= List(
