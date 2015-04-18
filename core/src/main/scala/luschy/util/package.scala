@@ -24,7 +24,7 @@ package object util {
   final val FieldSeparator: Char = '\u001D'
 
   private[luschy] final val CConsFieldName =
-    "__luschy_ccons_inl"
+    "__luschy_cconsinl"
 
   private[luschy] final val CConsFieldPrefix =
     "__luschy_ccons_"
