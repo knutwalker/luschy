@@ -4,7 +4,10 @@ lazy val core = project settings (name := "luschy")
 
 lazy val tests = project dependsOn core settings (
   name := "luschy-tests",
-  resolvers += Resolver.sonatypeRepo("snapshots"),
+  resolvers ++= List(
+    Resolver.sonatypeRepo("snapshots"),
+    "Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases"
+  ),
   libraryDependencies ++= List(
     "org.apache.lucene"           % "lucene-analyzers-common"   % luceneVersion.value % "test",
     "org.specs2"                 %% "specs2-core"               % "3.4"              % "test",
