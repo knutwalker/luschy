@@ -1,17 +1,20 @@
 lazy val parent = project in file(".") dependsOn core aggregate (core, tests) settings dontRelease
 
-lazy val core = project settings (name := "luschy")
+lazy val core = project settings (
+  name := "luschy",
+  libraries += Library.Lucene.core and Library.Shapeless.at("2.2.0-RC4"),
+  libraryDependencies += "de.knutwalker" %% "validation" % "0.1.0")
 
 lazy val tests = project dependsOn core settings (
-  name := "luschy-tests",
+  dontRelease,
   resolvers ++= List(
     Resolver.sonatypeRepo("snapshots"),
     "Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases"
   ),
+  libraries ++= List(
+    Library.Lucene.`analyzers-common`(Test),
+    Library.Specs2.core(Test).scalacheck(Test)),
   libraryDependencies ++= List(
-    "org.apache.lucene"           % "lucene-analyzers-common"   % luceneVersion.value % "test",
-    "org.specs2"                 %% "specs2-core"               % "3.4"              % "test",
-    "org.specs2"                 %% "specs2-scalacheck"         % "3.4"              % "test",
     "org.scalacheck"             %% "scalacheck"                % "1.12.2"           % "test",
     "com.github.alexarchambault" %% "scalacheck-shapeless_1.12" % "0.2.0-SNAPSHOT"   % "test",
     "org.typelevel"              %% "scalaz-specs2"             % "0.4.0"            % "test"
