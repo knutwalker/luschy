@@ -20,5 +20,4 @@ trait AllSyntaxes extends
 ToDocumentSyntax with
 FromDocumentSyntax with
 ToFieldSyntax with
-ToIndexSyntax with
-DecodeResultSyntax
+ToIndexSyntax

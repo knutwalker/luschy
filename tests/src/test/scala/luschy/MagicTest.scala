@@ -91,10 +91,10 @@ object MagicTest extends Specification with ScalazMatchers with LuceneContext {
     result should have size 1
     val hit: Document = result.head
 
-    hit.as[Person] should be equalTo DecodeResult.valid(bernd)
-    (hit >> 'pet).as[Animal] should be equalTo DecodeResult.valid(bernd.pet)
+    hit.as[Person] should be equalTo DecodeResults.valid(bernd)
+    (hit >> 'pet).as[Animal] should be equalTo DecodeResults.valid(bernd.pet)
     hit.field('pet)[Animal] should be equalTo hit.as[Person].map(_.pet)
-    hit.field('pet).as[Cat] should beEqualTo (DecodeResult.valid(bernd.pet))
-    (hit >> 'pet >> 'fishes)[Int] should be equalTo DecodeResult.valid(bernd.pet.asInstanceOf[Cat].fishes)
+    hit.field('pet).as[Cat] should beEqualTo (DecodeResults.valid(bernd.pet))
+    (hit >> 'pet >> 'fishes)[Int] should be equalTo DecodeResults.valid(bernd.pet.asInstanceOf[Cat].fishes)
   }
 }

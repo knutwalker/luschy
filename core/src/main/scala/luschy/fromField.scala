@@ -16,13 +16,15 @@
 
 package luschy
 
+import luschy.DecodeResults.WrongType
 import util.{CConsFieldPrefix, FieldSeparatorRe, fieldWithNewName}
-import syntax.decodeResult._
 
 import org.apache.lucene.document.Document
 import org.apache.lucene.index.IndexableField
 import shapeless._
 import shapeless.labelled._
+import validation.Result
+import validation.Result.symbolic._
 
 import annotation.tailrec
 import collection.JavaConverters._
@@ -40,8 +42,8 @@ object FromField extends FromFieldInstances {
 trait FromFieldInstances extends FromFieldInstances1 {
   implicit val fromFieldString: FromField[String] = new FromField[String] {
     def fromField(x: IndexableField, doc: Document, expectedName: String): DecodeResult[String] = {
-      if (x eq null) DecodeResult.missingField(expectedName)
-      else (fromString(x) orElse fromBytes(x)).toDecodeResult(DecodeResult.WrongType(expectedName, "String"))
+      if (x eq null) DecodeResults.missingField(expectedName)
+      else Result.fromOption(fromString(x) orElse fromBytes(x), WrongType(expectedName, "String"))
     }
 
     private def fromString(x: IndexableField) =
@@ -53,8 +55,8 @@ trait FromFieldInstances extends FromFieldInstances1 {
 
   implicit val fromFieldInd: FromField[Int] = new FromField[Int] {
     def fromField(x: IndexableField, doc: Document, expectedName: String): DecodeResult[Int] = {
-      if (x eq null) DecodeResult.missingField(expectedName)
-      else (fromNumber(x) orElse fromText(x)).toDecodeResult(DecodeResult.WrongType(expectedName, "Int"))
+      if (x eq null) DecodeResults.missingField(expectedName)
+      else Result.fromOption(fromNumber(x) orElse fromText(x), WrongType(expectedName, "Int"))
     }
 
     private def fromNumber(x: IndexableField) =
@@ -74,7 +76,7 @@ trait FromFieldInstances1  extends FromFieldInstances0 {
 
   implicit val fromFieldHNil: FromField[HNil] = new FromField[HNil] {
     def fromField(x: IndexableField, doc: Document, expectedName: String): DecodeResult[HNil] =
-      DecodeResult.valid(HNil)
+      Result.valid(HNil)
   }
 
   implicit def fromFieldHCons[K <: Symbol, V, T <: HList](implicit
@@ -90,17 +92,17 @@ trait FromFieldInstances1  extends FromFieldInstances0 {
         val sub = getSubDoc(x, doc)
         fromField(sub.getField(name), sub, name)
       } else if (x.name() == name) {
-        (V.value.fromField(x, doc, name) |@| T.value.fromField(x, doc, name))(field[K](_) :: _)
+        (V.value.fromField(x, doc, name) |@| T.value.fromField(x, doc, name)) apply (field[K](_) :: _)
       } else {
         val f = doc.getField(name)
-        (V.value.fromField(f, doc, name) |@| T.value.fromField(x, doc, name))(field[K](_) :: _)
+        (V.value.fromField(f, doc, name) |@| T.value.fromField(x, doc, name)) apply (field[K](_) :: _)
       }
     }
   }
 
   implicit val fromFieldCNil: FromField[CNil] = new FromField[CNil] {
     def fromField(x: IndexableField, doc: Document, expectedName: String): DecodeResult[CNil] =
-      DecodeResult.unexpected("fromField(CNil)")
+      DecodeResults.unexpected("fromField(CNil)")
   }
 
   implicit def fromFieldCCons[K <: Symbol, V, T <: Coproduct](implicit
@@ -110,7 +112,7 @@ trait FromFieldInstances1  extends FromFieldInstances0 {
   : FromField[FieldType[K, V] :+: T] = new FromField[FieldType[K, V] :+: T] {
 
     def fromField(x: IndexableField, doc: Document, expectedName: String): DecodeResult[FieldType[K, V] :+: T] = {
-      if (x == null) DecodeResult.missingField(expectedName)
+      if (x == null) DecodeResults.missingField(expectedName)
       else Option(x.stringValue()).filter(_ == K.value.name) match {
         case None    ⇒ T.value.fromField(x, doc, K.value.name).map(Inr(_))
         case Some(_) ⇒ V.value.fromDocument(getSubDoc(x, doc)).map(field[K](_)).map(Inl(_))

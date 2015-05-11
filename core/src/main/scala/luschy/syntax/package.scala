@@ -18,8 +18,6 @@ package luschy
 
 package object syntax {
 
-  object decodeResult extends DecodeResultSyntax
-
   object document extends ToDocumentSyntax with FromDocumentSyntax
 
   object field extends ToFieldSyntax

@@ -14,21 +14,10 @@
  * limitations under the License.
  */
 
-package luschy
-package syntax
+import luschy.DecodeResults.DecodeError
 
+import validation.Result
+package object luschy {
 
-trait DecodeResultSyntax {
-
-  implicit final class DecodeResultOps[A](val x: A) {
-    def valid: DecodeResult[A] = DecodeResult.valid[A](x)
-  }
-
-  implicit final class OptionDecodeResultOps[A](val x: Option[A]) {
-    def toDecodeResult(e: => DecodeResult.DecodeError): DecodeResult[A] = x match {
-      case Some(v) ⇒ DecodeResult.valid[A](v)
-      case None    ⇒ DecodeResult.Invalid(e)
-    }
-  }
+  type DecodeResult[+A] = Result[DecodeError, A]
 }
-object DecodeResultSyntax extends DecodeResultSyntax

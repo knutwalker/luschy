@@ -21,6 +21,8 @@ import luschy.util.{CConsFieldName, CConsFieldPrefix}
 import org.apache.lucene.document.Document
 import shapeless._
 import shapeless.labelled._
+import validation.Result
+import validation.Result.symbolic._
 
 trait FromDocument[A] {
   def fromDocument(x: Document): DecodeResult[A]
@@ -34,7 +36,7 @@ object FromDocument extends FromDocumentInstances {
 trait FromDocumentInstances extends FromDocumentInstances0 {
 
   implicit val fromDocumentHNil: FromDocument[HNil] = new FromDocument[HNil] {
-    def fromDocument(x: Document): DecodeResult[HNil] = DecodeResult.valid(HNil)
+    def fromDocument(x: Document): DecodeResult[HNil] = Result.valid(HNil)
   }
 
   implicit def fromDocumentHCons[K <: Symbol, V, T <: HList](implicit
@@ -46,13 +48,13 @@ trait FromDocumentInstances extends FromDocumentInstances0 {
     def fromDocument(x: Document): DecodeResult[FieldType[K, V] :: T] = {
       val headField = Option(x.getField(K.value.name))
         .getOrElse(x.getField(CConsFieldPrefix + K.value.name))
-      (V.value.fromField(headField, x, K.value.name) |@| T.value.fromDocument(x))(field[K](_) :: _)
+      (V.value.fromField(headField, x, K.value.name) |@| T.value.fromDocument(x)) apply (field[K](_) :: _)
     }
   }
 
   implicit val fromDocumentCNil: FromDocument[CNil] = new FromDocument[CNil] {
     def fromDocument(x: Document): DecodeResult[CNil] =
-      DecodeResult.unexpected("fromDocument(CNil)")
+      DecodeResults.unexpected("fromDocument(CNil)")
   }
 
   implicit def fromDocumentCCons[K <: Symbol, V, T <: Coproduct, N <: Nat](implicit
