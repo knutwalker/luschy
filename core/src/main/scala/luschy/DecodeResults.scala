@@ -16,7 +16,7 @@
 
 package luschy
 
-import validation.{Mergeable, Result}
+import validation.Result
 
 object DecodeResults {
 
@@ -36,19 +36,4 @@ object DecodeResults {
   sealed case class MissingField(field: String) extends DecodeError
   sealed case class WrongType(field: String, expected: String) extends DecodeError
   sealed case class Unexpected(msg: String) extends DecodeError
-  sealed case class Multiple(errors: Vector[DecodeError]) extends DecodeError
-
-  object DecodeError {
-    implicit val decodeErrorMergable: Mergeable[DecodeError] =
-      Mergeable.instance((a, b) ⇒ a match {
-        case Multiple(xs) ⇒ b match {
-          case Multiple(ys) ⇒ Multiple(xs ++ ys)
-          case y            ⇒ Multiple(xs :+ y)
-        }
-        case x            ⇒ b match {
-          case Multiple(ys) ⇒ Multiple(b +: ys)
-          case y            ⇒ Multiple(Vector(x, y))
-        }
-      })
-  }
 }

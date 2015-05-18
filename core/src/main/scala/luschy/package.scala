@@ -17,6 +17,7 @@
 import luschy.DecodeResults.DecodeError
 
 import validation.Result
+
 package object luschy {
 
   type DecodeResult[+A] = Result[DecodeError, A]

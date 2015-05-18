@@ -2,8 +2,8 @@ lazy val parent = project in file(".") dependsOn core aggregate (core, tests) se
 
 lazy val core = project settings (
   name := "luschy",
-  libraryDependencies += "de.knutwalker" %% "validation" % "0.1.0")
   libraries += Library.Lucene.core and Library.Shapeless.at("2.2.0-RC6"),
+  libraryDependencies += "de.knutwalker" %% "validation" % "0.2.0")
 
 lazy val tests = project dependsOn core settings (
   dontRelease,
