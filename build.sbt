@@ -2,8 +2,8 @@ lazy val parent = project in file(".") dependsOn core aggregate (core, tests) se
 
 lazy val core = project settings (
   name := "luschy",
-  libraries += Library.Lucene.core and Library.Shapeless.at("2.2.0-RC4"),
   libraryDependencies += "de.knutwalker" %% "validation" % "0.1.0")
+  libraries += Library.Lucene.core and Library.Shapeless.at("2.2.0-RC6"),
 
 lazy val tests = project dependsOn core settings (
   dontRelease,
@@ -13,7 +13,7 @@ lazy val tests = project dependsOn core settings (
   ),
   libraries ++= List(
     Library.Lucene.`analyzers-common`(Test),
-    Library.Specs2.core(Test).scalacheck(Test)),
+    Library.Specs2.core(Test).scalacheck(Test).at("3.6")),
   libraryDependencies ++= List(
     "org.scalacheck"             %% "scalacheck"                % "1.12.2"           % "test",
     "com.github.alexarchambault" %% "scalacheck-shapeless_1.12" % "0.2.0-SNAPSHOT"   % "test",
