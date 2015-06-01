@@ -1,4 +1,14 @@
-lazy val parent = project in file(".") dependsOn core aggregate (core, tests) settings dontRelease
+lazy val parent = project in file(".") dependsOn (model, json, core) aggregate (model, json, core, tests) settings dontRelease
+
+lazy val model = project settings (
+  name := "luschy-model",
+  libraryDependencies += "de.knutwalker" %% "validation" % "0.2.0")
+
+lazy val json = project dependsOn model settings (
+  name := "luschy-json",
+  libraryDependencies ++= List(
+    "io.argonaut"   %% "argonaut"   % "6.1",
+    "de.knutwalker" %% "validation" % "0.2.0"))
 
 lazy val core = project settings (
   name := "luschy",
