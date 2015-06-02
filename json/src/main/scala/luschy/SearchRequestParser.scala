@@ -17,7 +17,7 @@
 package luschy
 
 import validation.Result
-import validation.Result.invalid
+import validation.Result.{valid, invalids, invalid}
 import validation.Result.syntax._
 import validation.Result.symbolic._
 
@@ -37,7 +37,7 @@ abstract class SearchRequestParser[A] {
   def parseJson(json: Json): Json \@/ A =
     decodeSearchRequest(json.hcursor).fold(
       es ⇒ invalid(errorsAsJson(s"Could not decode [$json] as a ${config.name}", es.toList)),
-      Result.valid)
+      valid)
 
   def decodeSearchRequest(c: HCursor): (Field, String) \@/ A = {
     val cfg = config
@@ -60,11 +60,11 @@ abstract class SearchRequestParser[A] {
 
     val sort =
       decodeAsList[Sort](sortField, additionalSortFields: _*)(c)
-        .getOrElse(Result.valid(Nil))
+        .getOrElse(valid(Nil))
 
     val filter =
       decodeAsList[Filter](filterField, additionalFilterFields: _*)(c)
-        .getOrElse(Result.valid(Nil))
+        .getOrElse(valid(Nil))
 
     val token =
       decodeAsOption[Option[Long]](tokenField, additionalTokenFields: _*)(c)
@@ -159,14 +159,23 @@ object SearchRequestParser {
   private def decodeAsOption[A: RequestPartDecoder](f: String, fs: String*)(c: HCursor): DecodedOne[Option[A]] =
     decodeAsList[A](f, fs: _*)(c)
       .map(_.map(_.lastOption))
-      .getOrElse(Result.valid(None))
+      .getOrElse(valid(None))
 
   private def decodeAsList[A: RequestPartDecoder](f: String, fs: String*)(c: HCursor): DecodingMany[A] =
     decodeAsList0[A](f :: fs.toList, c, None).map(_.invalidMap(x ⇒ (Field(f), x._2)))
 
+  private def decodeFirstAsList[A: RequestPartDecoder](f: String, fs: String*)(c: HCursor): DecodingMany[A] =
+    decodeFirstAsList0[A](f :: fs.toList, c, None).map(_.invalidMap(x ⇒ (Field(f), x._2)))
+
   @annotation.tailrec
   private def decodeAsList0[A: RequestPartDecoder](fs: List[String], c: HCursor, res: DecodingMany[A]): DecodingMany[A] = fs match {
     case f :: rest ⇒ decodeAsList0[A](rest, c, mergeDecodings[A](res, decodeField(f, c)(decodeOneOrMany[A])))
+    case Nil       ⇒ res
+  }
+
+  @annotation.tailrec
+  private def decodeFirstAsList0[A: RequestPartDecoder](fs: List[String], c: HCursor, res: DecodingMany[A]): DecodingMany[A] = fs match {
+    case f :: rest ⇒ decodeFirstAsList0[A](rest, c, earlyMergeDecodings[A](res, decodeField(f, c)(decodeOneOrMany[A])))
     case Nil       ⇒ res
   }
 
@@ -177,6 +186,10 @@ object SearchRequestParser {
     d1.flatMap(r1 ⇒ res2.map(r2 ⇒ (r1 +|+ r2).map(_.toList.flatten))).orElse(d1).orElse(res2)
   }
 
+  private def earlyMergeDecodings[A](d1: DecodingMany[A], d2: ⇒ DecodingMany[A]): DecodingMany[A] =
+    if (d1.exists(_.isValid)) d1
+    else mergeDecodings(d1, d2)
+
   private def decodeField[A: RequestPartDecoder](f: String, c: HCursor)(d: HCursor ⇒ DecodedMany[A]): DecodingMany[A] =
     c.downField(f).hcursor.map(d)
 
@@ -184,14 +197,14 @@ object SearchRequestParser {
     decodeOne[A](c).fold(
       es ⇒ decodeOne[List[A]](c).fold(fs => {
         if (fs.head._2 == "Could not decode as List") {
-          Result.invalids(es)
+          invalids(es)
         } else {
-          Result.invalids(fs)
+          invalids(fs)
         }
       },
-      x => Result.valid(x)
+      valid
       ),
-      xs ⇒ Result.valid(List(xs))
+      x ⇒ valid(List(x))
     )
 
   private def decodeOne[A](c: HCursor)(implicit A: RequestPartDecoder[A]): DecodedOne[A] =
@@ -260,7 +273,7 @@ object SearchRequestParser {
       def continue(f: Option[String], nameRes: String \@/ Name, c: HCursor): DecodedOne[Filter] = {
         val firstKey = f.getOrElse("value")
         val keys = f.toSeq ++ Seq("value", "key", "values", "keys")
-        val valueRes = decodeAsList[String](keys.head, keys.tail: _*)(c)
+        val valueRes = decodeFirstAsList[String](keys.head, keys.tail: _*)(c)
           .map(_.invalidMap(_._2))
           .getOrElse(invalid(s"Missing field: '$firstKey'"))
           .filter(_.nonEmpty, s"'$firstKey' must have at lease one value.")

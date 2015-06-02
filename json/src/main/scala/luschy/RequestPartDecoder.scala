@@ -17,14 +17,13 @@
 package luschy
 
 import argonaut._
-import validation.Result.{valid, invalid}
-import validation.{NonEmptyVector, Result}
+import validation.Result
 import validation.Result.syntax._
-import validation.Result.unsafe._
+import validation.Result.{invalid, valid}
 
+import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
-import scalaz.{\/-, -\/, \/}
 
 trait RequestPartDecoder[A] {
 
@@ -80,17 +79,19 @@ object RequestPartDecoder {
             else
               invalid((fieldFromHistory(c.history) | Field("Unknown"), "Could not decode as List"))
           case Some(h) =>
-            val b: mutable.Builder[A, C[A]] = cbf()
-            loop(A.decode(c).map(b += _).map(x => (c, x)))(Result.invalids[(Field, String), mutable.Builder[A, C[A]]]) {
-              case (cursor, acc) => cursor.right.hcursor match {
-                case None     => -\/(Result.valid(acc))
-                case Some(hc) => \/-(A.decode(hc).map(acc += _).map(x => (hc, x)))
-              }
-            }.map(_.result())
+            go(h, Result.valid(cbf())).map(_.result())
+        }
+      }
+
+      @tailrec
+      private def go(hc: HCursor, res: (Field, String) \@/ mutable.Builder[A, C[A]]): (Field, String) \@/ mutable.Builder[A, C[A]] = {
+        val newRes = A.decode(hc).apply(res.map(b => b += (_: A)))
+        hc.right.hcursor match {
+          case None => newRes
+          case Some(nc) => go(nc, newRes)
         }
       }
     }
-
 
   implicit def optionRequestPartDecoder[A](implicit A: RequestPartDecoder[A]): RequestPartDecoder[Option[A]] = {
     new RequestPartDecoder[Option[A]] {
@@ -132,15 +133,4 @@ object RequestPartDecoder {
     def unapply(c: CursorHistory): Option[Field] =
       fieldFromHistory(c)
   }
-
-  @annotation.tailrec
-  final def loop[A, E, X](d: Result[E, A])(e: NonEmptyVector[E] => X)(f: A => X \/ Result[E, A]): X =
-    if (d.isInvalid)
-      e(d.getInvalid)
-    else
-      f(d.get) match {
-        case -\/(x) => x
-        case \/-(a) => loop(a)(e)(f)
-      }
-
 }
