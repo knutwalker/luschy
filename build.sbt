@@ -12,8 +12,11 @@ lazy val json = project dependsOn model settings (
 
 lazy val core = project settings (
   name := "luschy",
-  libraries += Library.Lucene.core and Library.Shapeless.at("2.2.0-RC6"),
-  libraryDependencies += "de.knutwalker" %% "validation" % "0.2.0")
+  libraryDependencies ++= List(
+    "de.knutwalker"     %% "validation"  % "0.2.0",
+    "org.apache.lucene"  % "lucene-core" % "5.1.0",
+    "com.chuusai"       %% "shapeless"   % "2.2.0-RC6"
+  ))
 
 lazy val tests = project dependsOn core settings (
   dontRelease,
@@ -21,10 +24,10 @@ lazy val tests = project dependsOn core settings (
     Resolver.sonatypeRepo("snapshots"),
     "Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases"
   ),
-  libraries ++= List(
-    Library.Lucene.`analyzers-common`(Test),
-    Library.Specs2.core(Test).scalacheck(Test).at("3.6")),
   libraryDependencies ++= List(
+    "org.apache.lucene"           % "lucene-analyzers-common"   % "5.1.0"            % "test",
+    "org.specs2"                 %% "specs2-core"               % "3.6"              % "test",
+    "org.specs2"                 %% "specs2-scalacheck"         % "3.6"              % "test",
     "org.scalacheck"             %% "scalacheck"                % "1.12.2"           % "test",
     "com.github.alexarchambault" %% "scalacheck-shapeless_1.12" % "0.2.0-SNAPSHOT"   % "test",
     "org.typelevel"              %% "scalaz-specs2"             % "0.4.0"            % "test"
